@@ -1,0 +1,17 @@
+[package]
+
+name = "output"
+version = "0.1.0"
+
+authors = [
+	"James Pharaoh <james@pharaoh.uk>"
+]
+
+description = "Simple CLI output tools"
+license = "MIT"
+homepage = "https://gitlab.wellbehavedsoftware.com/james/rust-output"
+repository = "https://gitlab.wellbehavedsoftware.com/james/rust-output"
+
+[dependencies]
+
+termion = "1.1"
