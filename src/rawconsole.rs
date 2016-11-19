@@ -70,16 +70,19 @@ impl Output for RawConsole {
 		if self.status.is_some () {
 
 			stderr! (
-				"\r\x1b[A\x1b[K");
+				"\r\x1b[A\x1b[K{}\r\n",
+				status);
+
+		} else {
+
+			stderr! (
+				"{}\r\n",
+				status);
 
 		}
 
 		self.status =
 			Some (status.to_owned ());
-
-		stderr! (
-			"{}\r\n",
-			status);
 
 	}
 
@@ -91,19 +94,15 @@ impl Output for RawConsole {
 		if self.status.is_some () {
 
 			stderr! (
-				"\r\x1b[A\x1b[K");
+				"\r\x1b[A\x1b[K{}\r\n{}\r\n",
+				message,
+				self.status.as_ref ().unwrap ());
 
-		}
-
-		stderr! (
-			"{}\r\n",
-			message);
-
-		if self.status.is_some () {
+		} else {
 
 			stderr! (
 				"{}\r\n",
-				self.status.as_ref ().unwrap ());
+				message);
 
 		}
 
