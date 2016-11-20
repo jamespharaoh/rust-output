@@ -14,4 +14,7 @@ repository = "https://gitlab.wellbehavedsoftware.com/james/rust-output"
 
 [dependencies]
 
+libc = "0.2"
 termion = "1.1"
+
+# ex: noet ts=4 filetype=toml
