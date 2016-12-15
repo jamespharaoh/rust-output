@@ -1,9 +1,5 @@
-use std::cmp;
 use std::io;
 use std::io::Stdout;
-use std::sync::mpsc;
-use std::sync::mpsc::Receiver;
-use std::sync::mpsc::Sender;
 use std::thread;
 use std::thread::JoinHandle;
 
@@ -12,7 +8,6 @@ use libc;
 use output::Output;
 
 use termion;
-use termion::AsyncReader;
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
@@ -24,7 +19,6 @@ pub struct RawConsole {
 	columns: u64,
 	status: Option <String>,
 
-	input_receiver: Receiver <Key>,
 	input_thread: JoinHandle <()>,
 
 }
@@ -36,7 +30,7 @@ impl RawConsole {
 
 		// setup output
 
-		let mut output =
+		let output =
 			match io::stdout ().into_raw_mode () {
 
 			Ok (terminal) =>
@@ -59,17 +53,9 @@ impl RawConsole {
 
 		// setup input
 
-		let (input_sender, input_receiver) =
-			mpsc::channel ();
-
 		let input_thread =
 			thread::spawn (
-				move || {
-
-			Self::input_thread (
-				input_sender);
-
-		});
+				|| Self::input_thread ());
 
 		Some (
 			RawConsole {
@@ -78,7 +64,6 @@ impl RawConsole {
 				columns: columns,
 				status: None,
 
-				input_receiver: input_receiver,
 				input_thread: input_thread,
 
 			}
@@ -87,7 +72,6 @@ impl RawConsole {
 	}
 
 	fn input_thread (
-		sender: Sender <Key>,
 	) {
 
 		let stdin =
@@ -207,6 +191,28 @@ impl Output for RawConsole {
 				termion::clear::CurrentLine);
 
 		}
+
+		self.status =
+			None;
+
+	}
+
+	fn status_done (
+		& mut self,
+	) {
+
+		if self.status.is_none () {
+
+			panic! (
+				"Called status_done () with no status");
+
+		}
+
+		stderr! (
+			"\r{}{}{} done\r\n",
+			termion::cursor::Up (1),
+			termion::clear::CurrentLine,
+			self.status.as_ref ().unwrap ());
 
 		self.status =
 			None;
