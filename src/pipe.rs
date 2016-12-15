@@ -1,10 +1,6 @@
-use std::io;
-use std::io::Stdout;
-
 use output::Output;
 
 pub struct PipeOutput {
-	stdout: Stdout,
 }
 
 impl PipeOutput {
@@ -13,7 +9,6 @@ impl PipeOutput {
 	) -> PipeOutput {
 
 		PipeOutput {
-			stdout: io::stdout (),
 		}
 
 	}
