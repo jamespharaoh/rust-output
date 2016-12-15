@@ -1,6 +1,7 @@
 use std::io;
 use std::io::Stdout;
 use std::thread;
+use std::thread::JoinHandle;
 
 use libc;
 
@@ -17,6 +18,7 @@ pub struct RawConsole {
 	_output: RawTerminal <Stdout>,
 	columns: u64,
 	status: Option <String>,
+	_input_thread: JoinHandle <()>,
 
 }
 
@@ -50,8 +52,9 @@ impl RawConsole {
 
 		// setup input
 
-		thread::spawn (
-			|| Self::input_thread ());
+		let input_thread =
+			thread::spawn (
+				|| Self::input_thread ());
 
 		Some (
 			RawConsole {
@@ -59,6 +62,7 @@ impl RawConsole {
 				_output: output,
 				columns: columns,
 				status: None,
+				_input_thread: input_thread,
 
 			}
 		)
