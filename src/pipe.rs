@@ -1,14 +1,21 @@
-use output::Output;
+use std::fmt;
+use std::io;
+use std::io::Write;
+
+use backend::Backend;
 
 pub struct PipeOutput {
+	error_handler: Box <Fn (io::Error)>,
 }
 
 impl PipeOutput {
 
 	pub fn new (
+		error_handler: Box <Fn (io::Error)>,
 	) -> PipeOutput {
 
 		PipeOutput {
+			error_handler: error_handler,
 		}
 
 	}
@@ -16,27 +23,35 @@ impl PipeOutput {
 }
 
 
-impl Output for PipeOutput {
+impl Backend for PipeOutput {
 
-	fn status (
+	fn message_format (
 		& mut self,
-		_status: & str,
-	) {
-
-		// do nothing
-
-	}
-
-	fn message (
-		& mut self,
-		message: & str,
+		message_arguments: fmt::Arguments,
 	) {
 
 		// print message
 
-		stderr! (
-			"{}\n",
-			message);
+		io::stderr ().write_fmt (
+			format_args! (
+				"{}\n",
+				message_arguments)
+		).unwrap_or_else (
+			|error|
+
+			(self.error_handler) (
+				error)
+
+		);
+
+	}
+
+	fn status_format (
+		& mut self,
+		_status_arguments: fmt::Arguments,
+	) {
+
+		// do nothing
 
 	}
 
@@ -45,6 +60,22 @@ impl Output for PipeOutput {
 	) {
 
 		// do nothing
+
+	}
+
+	fn status_progress (
+		& mut self,
+		_numerator: u64,
+		_denominator: u64,
+	) {
+
+		// do nothing
+
+	}
+
+	fn status_tick (
+		& mut self,
+	) {
 
 	}
 

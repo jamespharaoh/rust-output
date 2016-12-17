@@ -1,50 +1,26 @@
 use std::fmt;
 use std::io;
-use std::io::Stderr;
 use std::io::Write;
-use std::thread;
-use std::thread::JoinHandle;
-
-use libc;
 
 use termion;
-use termion::event::Key;
-use termion::input::TermRead;
-use termion::raw::IntoRawMode;
-use termion::raw::RawTerminal;
 
 use backend::Backend;
 
-pub struct RawConsole <'a> {
+pub struct Console <'a> {
 	error_handler: Box <Fn (io::Error)>,
-	_output: RawTerminal <Stderr>,
 	columns: u64,
 	status: Option <String>,
 	status_suffix: Option <String>,
 	status_tick: u64,
 	status_tick_sequence: & 'a Vec <String>,
-	_input_thread: JoinHandle <()>,
 }
 
-impl <'a> RawConsole <'a> {
+impl <'a> Console <'a> {
 
 	pub fn new (
 		error_handler: Box <Fn (io::Error)>,
 		status_tick_sequence: & 'a Vec <String>,
-	) -> Option <RawConsole <'a>> {
-
-		// setup output
-
-		let output =
-			match io::stderr ().into_raw_mode () {
-
-			Ok (terminal) =>
-				terminal,
-
-			Err (_) =>
-				return None,
-
-		};
+	) -> Console <'a> {
 
 		let columns: u64 =
 			match termion::terminal_size () {
@@ -56,75 +32,16 @@ impl <'a> RawConsole <'a> {
 
 		};
 
-		// setup input
+		Console {
 
-		let input_thread =
-			thread::spawn (
-				|| Self::input_thread ());
+			error_handler: error_handler,
 
-		Some (
-			RawConsole {
+			columns: columns,
 
-				error_handler: error_handler,
-
-				_output: output,
-				columns: columns,
-
-				status: None,
-				status_suffix: None,
-				status_tick: 0,
-				status_tick_sequence: status_tick_sequence,
-
-				_input_thread: input_thread,
-
-			}
-		)
-
-	}
-
-	fn input_thread (
-	) {
-
-		let stdin =
-			io::stdin ();
-
-		for key_result in stdin.keys () {
-
-			if let Ok (key) = key_result {
-
-				match key {
-
-					Key::Ctrl ('c') => {
-
-						unsafe {
-
-							libc::kill (
-								libc::getpid (),
-								libc::SIGINT);
-
-						}
-
-					},
-
-					Key::Ctrl ('z') => {
-
-						unsafe {
-
-							libc::kill (
-								libc::getpid (),
-								libc::SIGSTOP);
-
-						}
-
-					},
-
-					_ => {
-						// ignore
-					},
-
-				}
-
-			}
+			status: None,
+			status_suffix: None,
+			status_tick: 0,
+			status_tick_sequence: status_tick_sequence,
 
 		}
 
@@ -132,7 +49,7 @@ impl <'a> RawConsole <'a> {
 
 }
 
-impl <'a> Backend for RawConsole <'a> {
+impl <'a> Backend for Console <'a> {
 
 	fn message_format (
 		& mut self,
@@ -298,7 +215,7 @@ impl <'a> Backend for RawConsole <'a> {
 		if self.status.is_none () {
 
 			panic! (
-				"Called status_progress () with no status");
+				"Called status_tick () with no status");
 
 		}
 
