@@ -60,7 +60,7 @@ impl <'a> Backend for Console <'a> {
 
 			io::stderr ().write_fmt (
 				format_args! (
-					"\r{}{}{}{}\r\n{}\r\n",
+					"\r{}{}{}\n{}{}\n",
 					termion::cursor::Up (1),
 					termion::clear::CurrentLine,
 					message_arguments,
