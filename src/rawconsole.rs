@@ -16,7 +16,7 @@ use termion::raw::RawTerminal;
 use backend::Backend;
 
 pub struct RawConsole <'a> {
-	error_handler: Box <Fn (io::Error)>,
+	error_handler: Box <Fn (io::Error) + Send>,
 	_output: RawTerminal <Stderr>,
 	columns: u64,
 	status: Option <String>,
@@ -29,7 +29,7 @@ pub struct RawConsole <'a> {
 impl <'a> RawConsole <'a> {
 
 	pub fn new (
-		error_handler: Box <Fn (io::Error)>,
+		error_handler: Box <Fn (io::Error) + Send>,
 		status_tick_sequence: & 'a Vec <String>,
 	) -> Option <RawConsole <'a>> {
 

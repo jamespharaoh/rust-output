@@ -1,28 +1,40 @@
-use std::cell::RefCell;
 use std::fmt;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 use backend::*;
 
+#[ derive (Clone) ]
 pub struct Output {
-	backend: RefCell <BoxBackend>,
+	backend: Option <Arc <Mutex <BoxBackend>>>,
 }
 
 impl Output {
 
+	#[ inline ]
 	pub fn new (
-		backend: BoxBackend,
+		backend: Option <BoxBackend>,
 	) -> Output {
 
 		Output {
 
-			backend:
-				RefCell::new (
-					backend),
+			backend: match backend {
+
+				Some (backend) =>
+					Some (Arc::new (Mutex::new (
+						backend
+					))),
+
+				None =>
+					None,
+
+			},
 
 		}
 
 	}
 
+	#[ inline ]
 	pub fn message <
 		Message: Into <String>,
 	> (
@@ -30,29 +42,39 @@ impl Output {
 		message: Message,
 	) {
 
-		let mut backend =
-			self.backend.borrow_mut ();
+		if let Some (ref backend) = self.backend {
 
-		backend.message_format (
-			format_args! (
-				"{}",
-				message.into ()))
+			let mut backend =
+				backend.lock ().unwrap ();
+
+			backend.message_format (
+				format_args! (
+					"{}",
+					message.into ()))
+
+		}
 
 	}
 
+	#[ inline ]
 	pub fn message_format (
 		& self,
 		message_arguments: fmt::Arguments,
 	) {
 
-		let mut backend =
-			self.backend.borrow_mut ();
+		if let Some (ref backend) = self.backend {
 
-		backend.message_format (
-			message_arguments)
+			let mut backend =
+				backend.lock ().unwrap ();
+
+			backend.message_format (
+				message_arguments)
+
+		}
 
 	}
 
+	#[ inline ]
 	pub fn status <
 		Status: Into <String>,
 	> (
@@ -60,74 +82,104 @@ impl Output {
 		status: Status,
 	) {
 
-		let mut backend =
-			self.backend.borrow_mut ();
+		if let Some (ref backend) = self.backend {
 
-		backend.status_format (
-			format_args! (
-				"{}",
-				status.into ()))
+			let mut backend =
+				backend.lock ().unwrap ();
+
+			backend.status_format (
+				format_args! (
+					"{}",
+					status.into ()))
+
+		}
 
 	}
 
+	#[ inline ]
 	pub fn status_format (
 		& self,
 		status_arguments: fmt::Arguments,
 	) {
 
-		let mut backend =
-			self.backend.borrow_mut ();
+		if let Some (ref backend) = self.backend {
 
-		backend.status_format (
-			status_arguments)
+			let mut backend =
+				backend.lock ().unwrap ();
+
+
+			backend.status_format (
+				status_arguments)
+
+		}
 
 	}
 
+	#[ inline ]
 	pub fn clear_status (
 		& self,
 	) {
 
-		let mut backend =
-			self.backend.borrow_mut ();
+		if let Some (ref backend) = self.backend {
 
-		backend.clear_status ()
+			let mut backend =
+				backend.lock ().unwrap ();
+
+			backend.clear_status ()
+
+		}
 
 	}
 
+	#[ inline ]
 	pub fn status_progress (
 		& self,
 		numerator: u64,
 		denominator: u64,
 	) {
 
-		let mut backend =
-			self.backend.borrow_mut ();
+		if let Some (ref backend) = self.backend {
 
-		backend.status_progress (
-			numerator,
-			denominator)
+			let mut backend =
+				backend.lock ().unwrap ();
+
+			backend.status_progress (
+				numerator,
+				denominator)
+
+		}
 
 	}
 
+	#[ inline ]
 	pub fn status_tick (
 		& self,
 	) {
 
-		let mut backend =
-			self.backend.borrow_mut ();
+		if let Some (ref backend) = self.backend {
 
-		backend.status_tick ()
+			let mut backend =
+				backend.lock ().unwrap ();
+
+			backend.status_tick ()
+
+		}
 
 	}
 
+	#[ inline ]
 	pub fn status_done (
 		& self,
 	) {
 
-		let mut backend =
-			self.backend.borrow_mut ();
+		if let Some (ref backend) = self.backend {
 
-		backend.status_done ()
+			let mut backend =
+				backend.lock ().unwrap ();
+
+			backend.status_done ()
+
+		}
 
 	}
 

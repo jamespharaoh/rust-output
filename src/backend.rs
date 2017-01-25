@@ -2,7 +2,7 @@ use std::fmt;
 
 pub type BoxBackend = Box <Backend>;
 
-pub trait Backend {
+pub trait Backend: Send {
 
 	fn message_format (
 		& mut self,

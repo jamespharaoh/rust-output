@@ -5,13 +5,13 @@ use std::io::Write;
 use backend::Backend;
 
 pub struct PipeOutput {
-	error_handler: Box <Fn (io::Error)>,
+	error_handler: Box <Fn (io::Error) + Send>,
 }
 
 impl PipeOutput {
 
 	pub fn new (
-		error_handler: Box <Fn (io::Error)>,
+		error_handler: Box <Fn (io::Error) + Send>,
 	) -> PipeOutput {
 
 		PipeOutput {

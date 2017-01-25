@@ -41,18 +41,24 @@ pub use rawconsole::*;
 pub fn open (
 ) -> Output {
 
-	Output::new (
+	Output::new (Some (
+
 		open_backend (
-			false))
+			false)
+
+	))
 
 }
 
 pub fn open_raw (
 ) -> Output {
 
-	Output::new (
+	Output::new (Some (
+
 		open_backend (
-			true))
+			true)
+
+	))
 
 }
 
@@ -64,10 +70,19 @@ pub fn pipe (
 			|_error| ()
 		);
 
-	Output::new (
-		Box::new (
-			PipeOutput::new (
-				error_handler)))
+	Output::new (Some (Box::new (
+
+		PipeOutput::new (
+			error_handler))
+
+	))
+
+}
+
+pub fn null (
+) -> Output {
+
+	Output::new (None)
 
 }
 
@@ -133,5 +148,37 @@ fn is_tty (
 	}
 
 }
+
+#[ macro_export ]
+macro_rules! output_message (
+
+	(
+		$output:tt,
+		$format:expr,
+		$($argument:tt) *
+	) => {
+		$output.message_format (
+			format_args! (
+				$format,
+				$($argument) *))
+	};
+
+);
+
+#[ macro_export ]
+macro_rules! output_status (
+
+	(
+		$output:tt,
+		$format:expr,
+		$(argument:tt) *
+	) => {
+		$output.status_format (
+			format_args! (
+				$format,
+				$($argument) *))
+	};
+
+);
 
 // ex: noet ts=4 filetype=rust

@@ -7,7 +7,7 @@ use termion;
 use backend::Backend;
 
 pub struct Console <'a> {
-	error_handler: Box <Fn (io::Error)>,
+	error_handler: Box <Fn (io::Error) + Send>,
 	columns: u64,
 	status: Option <String>,
 	status_suffix: Option <String>,
@@ -18,7 +18,7 @@ pub struct Console <'a> {
 impl <'a> Console <'a> {
 
 	pub fn new (
-		error_handler: Box <Fn (io::Error)>,
+		error_handler: Box <Fn (io::Error) + Send>,
 		status_tick_sequence: & 'a Vec <String>,
 	) -> Console <'a> {
 
