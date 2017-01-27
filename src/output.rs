@@ -1,4 +1,5 @@
 use std::fmt;
+use std::mem;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -6,31 +7,65 @@ use backend::*;
 
 #[ derive (Clone) ]
 pub struct Output {
-	backend: Option <Arc <Mutex <BoxBackend>>>,
+	state: Arc <Mutex <OutputState>>,
+}
+
+pub struct OutputState {
+	backend: Option <Box <Backend>>,
+	logs: Vec <OutputLogInternal>,
+	next_log_id: u64,
+}
+
+pub struct OutputLog <'a> {
+	output: Option <& 'a Output>,
+	log_id: u64,
+}
+
+#[ derive (Clone, Copy, PartialEq) ]
+pub enum OutputLogState {
+	Message,
+	Running,
+	Complete,
+	Incomplete,
+	Removed,
+}
+
+pub struct OutputLogInternal {
+	log_id: u64,
+	message: String,
+	numerator: u64,
+	denominator: u64,
+	tick: u64,
+	state: OutputLogState,
 }
 
 impl Output {
 
-	#[ inline ]
 	pub fn new (
-		backend: Option <BoxBackend>,
+		backend: Option <Box <Backend>>,
 	) -> Output {
 
 		Output {
-
-			backend: match backend {
-
-				Some (backend) =>
-					Some (Arc::new (Mutex::new (
-						backend
-					))),
-
-				None =>
-					None,
-
-			},
-
+			state: Arc::new (Mutex::new (OutputState {
+				backend: backend,
+				logs: Vec::new (),
+				next_log_id: 0,
+			})),
 		}
+
+	}
+
+	#[ inline ]
+	pub fn message_format (
+		& self,
+		arguments: fmt::Arguments,
+	) {
+
+		self.add_log (
+			format! (
+				"{}",
+				arguments),
+			OutputLogState::Message);
 
 	}
 
@@ -42,145 +77,395 @@ impl Output {
 		message: Message,
 	) {
 
-		if let Some (ref backend) = self.backend {
-
-			let mut backend =
-				backend.lock ().unwrap ();
-
-			backend.message_format (
-				format_args! (
-					"{}",
-					message.into ()))
-
-		}
+		self.add_log (
+			message.into (),
+			OutputLogState::Message);
 
 	}
 
-	#[ inline ]
-	pub fn message_format (
-		& self,
-		message_arguments: fmt::Arguments,
-	) {
-
-		if let Some (ref backend) = self.backend {
-
-			let mut backend =
-				backend.lock ().unwrap ();
-
-			backend.message_format (
-				message_arguments)
-
-		}
-
-	}
-
-	#[ inline ]
-	pub fn status <
-		Status: Into <String>,
+	pub fn start_job <
+		MessageString: Into <String>,
 	> (
 		& self,
-		status: Status,
-	) {
+		message: MessageString,
+	) -> OutputLog {
 
-		if let Some (ref backend) = self.backend {
-
-			let mut backend =
-				backend.lock ().unwrap ();
-
-			backend.status_format (
-				format_args! (
-					"{}",
-					status.into ()))
-
-		}
+		self.add_log (
+			message.into (),
+			OutputLogState::Running)
 
 	}
 
-	#[ inline ]
-	pub fn status_format (
+	fn add_log (
 		& self,
-		status_arguments: fmt::Arguments,
+		message: String,
+		state: OutputLogState,
+	) -> OutputLog {
+
+		let mut self_state =
+			self.state.lock ().unwrap ();
+
+		let log_id = self_state.next_log_id;
+		self_state.next_log_id += 1;
+
+		let log_internal =
+			OutputLogInternal {
+				log_id: log_id,
+				message: message.clone (),
+				numerator: 0,
+				denominator: 0,
+				tick: 0,
+				state: state,
+			};
+
+		self_state.logs.push (
+			log_internal);
+
+		let log =
+			OutputLog {
+				output: Some (self as & Output),
+				log_id: log_id,
+			};
+
+		self_state.update_backend ();
+
+		log
+
+	}
+
+}
+
+impl OutputState {
+
+	fn get_log_internal (
+		& mut self,
+		log_id: u64,
+	) -> Option <& mut OutputLogInternal> {
+
+		self.logs.iter_mut ().filter (
+			|log_internal| log_internal.log_id == log_id
+		).next ()
+
+	}
+
+	fn update_backend (
+		& mut self,
 	) {
 
-		if let Some (ref backend) = self.backend {
+		if let Some (ref mut backend) = self.backend {
 
-			let mut backend =
-				backend.lock ().unwrap ();
+			backend.update (
+				& self.logs);
 
+		}
 
-			backend.status_format (
-				status_arguments)
+		let logs_temp =
+			mem::replace (
+				& mut self.logs,
+				vec! []);
 
+		self.logs =
+			logs_temp.into_iter ().skip_while (
+				|log_internal| log_internal.state != OutputLogState::Running
+			).collect ();
+
+	}
+
+}
+
+impl <'a> OutputLog <'a> {
+
+	pub fn null (
+	) -> OutputLog <'a> {
+
+		OutputLog {
+			output: None,
+			log_id: 0,
 		}
 
 	}
 
-	#[ inline ]
-	pub fn clear_status (
-		& self,
-	) {
-
-		if let Some (ref backend) = self.backend {
-
-			let mut backend =
-				backend.lock ().unwrap ();
-
-			backend.clear_status ()
-
-		}
-
-	}
-
-	#[ inline ]
-	pub fn status_progress (
+	pub fn progress (
 		& self,
 		numerator: u64,
 		denominator: u64,
 	) {
 
-		if let Some (ref backend) = self.backend {
+		if let Some (output) =
+			self.output {
 
-			let mut backend =
-				backend.lock ().unwrap ();
+			let mut output_state =
+				output.state.lock ().unwrap ();
 
-			backend.status_progress (
-				numerator,
-				denominator)
+			{
+
+				let log_internal =
+					output_state.get_log_internal (
+						self.log_id,
+					).unwrap ();
+
+				if log_internal.state != OutputLogState::Running {
+					panic! ();
+				}
+
+				log_internal.numerator = numerator;
+				log_internal.denominator = denominator;
+
+			}
+
+			output_state.update_backend ();
 
 		}
 
 	}
 
-	#[ inline ]
-	pub fn status_tick (
+	pub fn tick (
 		& self,
 	) {
 
-		if let Some (ref backend) = self.backend {
+		if let Some (output) =
+			self.output {
 
-			let mut backend =
-				backend.lock ().unwrap ();
+			let mut output_state =
+				output.state.lock ().unwrap ();
 
-			backend.status_tick ()
+			{
+
+				let log_internal =
+					output_state.get_log_internal (
+						self.log_id,
+					).unwrap ();
+
+				if log_internal.state != OutputLogState::Running {
+					panic! ();
+				}
+
+				log_internal.tick += 1;
+
+			}
+
+			output_state.update_backend ();
 
 		}
 
 	}
 
-	#[ inline ]
-	pub fn status_done (
-		& self,
+	pub fn remove (
+		self,
 	) {
 
-		if let Some (ref backend) = self.backend {
+		if let Some (output) =
+			self.output {
 
-			let mut backend =
-				backend.lock ().unwrap ();
+			let mut output_state =
+				output.state.lock ().unwrap ();
 
-			backend.status_done ()
+			{
+
+				let log_internal =
+					output_state.get_log_internal (
+						self.log_id,
+					).unwrap ();
+
+				if log_internal.state != OutputLogState::Running {
+					panic! ();
+				}
+
+				log_internal.state = OutputLogState::Removed;
+
+			}
+
+			output_state.update_backend ();
 
 		}
 
+	}
+
+	pub fn complete (
+		self,
+	) {
+
+		if let Some (output) =
+			self.output {
+
+			let mut output_state =
+				output.state.lock ().unwrap ();
+
+			{
+
+				let log_internal =
+					output_state.get_log_internal (
+						self.log_id,
+					).unwrap ();
+
+				if log_internal.state != OutputLogState::Running {
+					panic! ();
+				}
+
+				log_internal.state = OutputLogState::Complete;
+
+			};
+
+			output_state.update_backend ();
+
+		}
+
+	}
+
+	pub fn incomplete (
+		self,
+	) {
+
+		if let Some (output) =
+			self.output {
+
+			let mut output_state =
+				output.state.lock ().unwrap ();
+
+			{
+
+				let log_internal =
+					output_state.get_log_internal (
+						self.log_id,
+					).unwrap ();
+
+				if log_internal.state != OutputLogState::Running {
+					panic! ();
+				}
+
+				log_internal.state = OutputLogState::Incomplete;
+
+			}
+
+			output_state.update_backend ();
+
+		}
+
+	}
+
+	pub fn update (
+		& self,
+		message: String,
+	) {
+
+		if let Some (output) =
+			self.output {
+
+			let mut output_state =
+				output.state.lock ().unwrap ();
+
+			{
+
+				let log_internal =
+					output_state.get_log_internal (
+						self.log_id,
+					).unwrap ();
+
+				if log_internal.state != OutputLogState::Running {
+					panic! ();
+				}
+
+				log_internal.message = message;
+
+			}
+
+			output_state.update_backend ();
+
+		}
+
+	}
+
+	pub fn replace (
+		self,
+		message: String,
+	) {
+
+		if let Some (output) =
+			self.output {
+
+			let mut output_state =
+				output.state.lock ().unwrap ();
+
+			{
+
+				let log_internal =
+					output_state.get_log_internal (
+						self.log_id,
+					).unwrap ();
+
+				if log_internal.state != OutputLogState::Running
+				&& log_internal.state != OutputLogState::Message {
+					panic! ();
+				}
+
+				log_internal.state = OutputLogState::Message;
+				log_internal.message = message;
+
+			}
+
+			output_state.update_backend ();
+
+		}
+
+	}
+
+}
+
+impl <'a> Drop for OutputLog <'a> {
+
+	fn drop (
+		& mut self,
+	) {
+
+		if let Some (output) =
+			self.output {
+
+			let mut output_state =
+				output.state.lock ().unwrap ();
+
+			{
+
+				if let Some (log_internal) =
+					output_state.get_log_internal (
+						self.log_id,
+					) {
+
+					if log_internal.state == OutputLogState::Running {
+						log_internal.state = OutputLogState::Incomplete;
+					}
+
+				}
+
+			};
+
+			output_state.update_backend ();
+
+		}
+
+	}
+
+}
+
+impl OutputLogInternal {
+
+	pub fn message (& self) -> & str {
+		& self.message
+	}
+
+	pub fn state (& self) -> OutputLogState {
+		self.state
+	}
+
+	pub fn numerator (& self) -> u64 {
+		self.numerator
+	}
+
+	pub fn denominator (& self) -> u64 {
+		self.denominator
+	}
+
+	pub fn tick (& self) -> u64 {
+		self.tick
 	}
 
 }

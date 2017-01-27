@@ -1,8 +1,8 @@
-use std::fmt;
 use std::io;
 use std::io::Write;
 
-use backend::Backend;
+use backend::*;
+use output::*;
 
 pub struct PipeOutput {
 	error_handler: Box <Fn (io::Error) + Send>,
@@ -22,68 +22,32 @@ impl PipeOutput {
 
 }
 
-
 impl Backend for PipeOutput {
 
-	fn message_format (
+	fn update (
 		& mut self,
-		message_arguments: fmt::Arguments,
+		logs: & [OutputLogInternal],
 	) {
 
-		// print message
+		for log in logs {
 
-		io::stderr ().write_fmt (
-			format_args! (
+			if log.state () != OutputLogState::Message {
+				break;
+			}
+
+			write! (
+				io::stderr (),
 				"{}\n",
-				message_arguments)
-		).unwrap_or_else (
-			|error|
+				log.message (),
+			).unwrap_or_else (
+				|error|
 
-			(self.error_handler) (
-				error)
+				(self.error_handler) (
+					error)
 
-		);
+			);
 
-	}
-
-	fn status_format (
-		& mut self,
-		_status_arguments: fmt::Arguments,
-	) {
-
-		// do nothing
-
-	}
-
-	fn clear_status (
-		& mut self,
-	) {
-
-		// do nothing
-
-	}
-
-	fn status_progress (
-		& mut self,
-		_numerator: u64,
-		_denominator: u64,
-	) {
-
-		// do nothing
-
-	}
-
-	fn status_tick (
-		& mut self,
-	) {
-
-	}
-
-	fn status_done (
-		& mut self,
-	) {
-
-		// do nothing
+		}
 
 	}
 

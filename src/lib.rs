@@ -153,30 +153,62 @@ fn is_tty (
 macro_rules! output_message (
 
 	(
-		$output:tt,
-		$format:expr,
-		$($argument:tt) *
+		$ output : expr ,
+		$ ( $ argument : tt ) *
 	) => {
-		$output.message_format (
+		$ output.message_format (
 			format_args! (
-				$format,
-				$($argument) *))
+				$ ( $ argument ) *
+			)
+		)
 	};
 
 );
 
 #[ macro_export ]
-macro_rules! output_status (
+macro_rules! output_job_start (
 
 	(
-		$output:tt,
-		$format:expr,
-		$(argument:tt) *
+		$ output : expr ,
+		$ ( $ argument : tt ) *
 	) => {
-		$output.status_format (
-			format_args! (
-				$format,
-				$($argument) *))
+		$ output.start_job (
+			format! (
+				$ ( $ argument ) *
+			)
+		)
+	};
+
+);
+
+#[ macro_export ]
+macro_rules! output_job_update (
+
+	(
+		$ output_job : expr ,
+		$ ( $ argument : tt ) *
+	) => {
+		$ output_job.update (
+			format! (
+				$ ( $ argument ) *
+			)
+		)
+	};
+
+);
+
+#[ macro_export ]
+macro_rules! output_job_replace (
+
+	(
+		$ output_job : expr ,
+		$ ( $ argument : tt ) *
+	) => {
+		$ output_job.replace (
+			format! (
+				$ ( $ argument ) *
+			)
+		)
 	};
 
 );
