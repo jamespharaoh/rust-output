@@ -2,7 +2,7 @@ use std::io;
 use std::io::Write;
 
 use backend::*;
-use output::*;
+use output_log::*;
 
 pub struct PipeOutput {
 	error_handler: Box <Fn (io::Error) + Send>,

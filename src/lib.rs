@@ -26,6 +26,8 @@ extern crate termion;
 mod backend;
 mod console;
 mod output;
+mod output_log;
+mod output_state;
 mod pipe;
 mod rawconsole;
 mod ticksequence;
@@ -35,6 +37,7 @@ use std::fs::File;
 pub use backend::*;
 pub use console::*;
 pub use output::*;
+pub use output_log::*;
 pub use pipe::*;
 pub use rawconsole::*;
 

@@ -5,7 +5,7 @@ use std::io::Write;
 use termion;
 
 use backend::*;
-use output::*;
+use output_log::*;
 
 pub struct Console <'a> {
 	status_tick_sequence: & 'a [String],

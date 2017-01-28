@@ -1,4 +1,4 @@
-use output::*;
+use output_log::*;
 
 pub type BoxBackend = Box <Backend>;
 

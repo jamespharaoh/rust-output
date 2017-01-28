@@ -14,7 +14,7 @@ use termion::raw::IntoRawMode;
 use termion::raw::RawTerminal;
 
 use backend::*;
-use output::*;
+use output_log::*;
 
 pub struct RawConsole <'a> {
 	error_handler: Box <Fn (io::Error) + Send>,
