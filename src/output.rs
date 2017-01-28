@@ -14,12 +14,16 @@ pub struct OutputState {
 	backend: Option <Box <Backend>>,
 	logs: Vec <OutputLogInternal>,
 	next_log_id: u64,
+	paused: bool,
+	changed: bool,
 }
 
-pub struct OutputLog <'a> {
-	output: Option <& 'a Output>,
+pub struct OutputLog {
+	output_state: Option <Arc <Mutex <OutputState>>>,
 	log_id: u64,
 }
+
+pub type OutputJob = OutputLog;
 
 #[ derive (Clone, Copy, PartialEq) ]
 pub enum OutputLogState {
@@ -50,6 +54,8 @@ impl Output {
 				backend: backend,
 				logs: Vec::new (),
 				next_log_id: 0,
+				paused: false,
+				changed: false,
 			})),
 		}
 
@@ -123,13 +129,39 @@ impl Output {
 
 		let log =
 			OutputLog {
-				output: Some (self as & Output),
+				output_state: Some (self.state.clone ()),
 				log_id: log_id,
 			};
 
 		self_state.update_backend ();
 
 		log
+
+	}
+
+	pub fn pause (
+		& self,
+	) {
+
+		let mut self_state =
+			self.state.lock ().unwrap ();
+
+		self_state.paused = true;
+
+	}
+
+	pub fn unpause (
+		& self,
+	) {
+
+		let mut self_state =
+			self.state.lock ().unwrap ();
+
+		self_state.paused = false;
+
+		if self_state.changed {
+			self_state.update_backend ()
+		}
 
 	}
 
@@ -152,34 +184,44 @@ impl OutputState {
 		& mut self,
 	) {
 
-		if let Some (ref mut backend) = self.backend {
+		if self.paused {
 
-			backend.update (
-				& self.logs);
+			self.changed = true;
+
+		} else {
+
+			self.changed = false;
+
+			if let Some (ref mut backend) = self.backend {
+
+				backend.update (
+					& self.logs);
+
+			}
+
+			let logs_temp =
+				mem::replace (
+					& mut self.logs,
+					vec! []);
+
+			self.logs =
+				logs_temp.into_iter ().skip_while (
+					|log_internal| log_internal.state != OutputLogState::Running
+				).collect ();
 
 		}
-
-		let logs_temp =
-			mem::replace (
-				& mut self.logs,
-				vec! []);
-
-		self.logs =
-			logs_temp.into_iter ().skip_while (
-				|log_internal| log_internal.state != OutputLogState::Running
-			).collect ();
 
 	}
 
 }
 
-impl <'a> OutputLog <'a> {
+impl OutputLog {
 
 	pub fn null (
-	) -> OutputLog <'a> {
+	) -> OutputLog {
 
 		OutputLog {
-			output: None,
+			output_state: None,
 			log_id: 0,
 		}
 
@@ -191,11 +233,11 @@ impl <'a> OutputLog <'a> {
 		denominator: u64,
 	) {
 
-		if let Some (output) =
-			self.output {
+		if let Some (ref output_state) =
+			self.output_state {
 
 			let mut output_state =
-				output.state.lock ().unwrap ();
+				output_state.lock ().unwrap ();
 
 			{
 
@@ -223,11 +265,11 @@ impl <'a> OutputLog <'a> {
 		& self,
 	) {
 
-		if let Some (output) =
-			self.output {
+		if let Some (ref output_state) =
+			self.output_state {
 
 			let mut output_state =
-				output.state.lock ().unwrap ();
+				output_state.lock ().unwrap ();
 
 			{
 
@@ -254,11 +296,11 @@ impl <'a> OutputLog <'a> {
 		self,
 	) {
 
-		if let Some (output) =
-			self.output {
+		if let Some (ref output_state) =
+			self.output_state {
 
 			let mut output_state =
-				output.state.lock ().unwrap ();
+				output_state.lock ().unwrap ();
 
 			{
 
@@ -285,11 +327,11 @@ impl <'a> OutputLog <'a> {
 		self,
 	) {
 
-		if let Some (output) =
-			self.output {
+		if let Some (ref output_state) =
+			self.output_state {
 
 			let mut output_state =
-				output.state.lock ().unwrap ();
+				output_state.lock ().unwrap ();
 
 			{
 
@@ -316,11 +358,11 @@ impl <'a> OutputLog <'a> {
 		self,
 	) {
 
-		if let Some (output) =
-			self.output {
+		if let Some (ref output_state) =
+			self.output_state {
 
 			let mut output_state =
-				output.state.lock ().unwrap ();
+				output_state.lock ().unwrap ();
 
 			{
 
@@ -348,11 +390,11 @@ impl <'a> OutputLog <'a> {
 		message: String,
 	) {
 
-		if let Some (output) =
-			self.output {
+		if let Some (ref output_state) =
+			self.output_state {
 
 			let mut output_state =
-				output.state.lock ().unwrap ();
+				output_state.lock ().unwrap ();
 
 			{
 
@@ -380,11 +422,11 @@ impl <'a> OutputLog <'a> {
 		message: String,
 	) {
 
-		if let Some (output) =
-			self.output {
+		if let Some (ref output_state) =
+			self.output_state {
 
 			let mut output_state =
-				output.state.lock ().unwrap ();
+				output_state.lock ().unwrap ();
 
 			{
 
@@ -411,17 +453,17 @@ impl <'a> OutputLog <'a> {
 
 }
 
-impl <'a> Drop for OutputLog <'a> {
+impl Drop for OutputLog {
 
 	fn drop (
 		& mut self,
 	) {
 
-		if let Some (output) =
-			self.output {
+		if let Some (ref output_state) =
+			self.output_state {
 
 			let mut output_state =
-				output.state.lock ().unwrap ();
+				output_state.lock ().unwrap ();
 
 			{
 
