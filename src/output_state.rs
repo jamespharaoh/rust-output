@@ -149,6 +149,19 @@ impl OutputState {
 
 	}
 
+	pub fn flush (
+		& mut self,
+	) {
+
+		let old_paused = self.paused;
+		self.paused = false;
+
+		self.update_backend_real ();
+
+		self.paused = old_paused;
+
+	}
+
 	fn update_backend_real (
 		& mut self,
 	) {

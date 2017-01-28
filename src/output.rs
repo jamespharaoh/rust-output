@@ -89,6 +89,17 @@ impl Output {
 
 	}
 
+	pub fn flush (
+		& self,
+	) {
+
+		let mut self_state =
+			self.state.lock ().unwrap ();
+
+		self_state.flush ();
+
+	}
+
 	pub fn add_log (
 		& self,
 		message: String,
