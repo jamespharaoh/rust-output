@@ -288,7 +288,8 @@ impl Drop for OutputLog {
 			self.output_state {
 
 			let mut output_state =
-				output_state.lock ().unwrap ();
+				output_state.lock ().expect (
+					"Output state disappeared in OutputLog::drop");
 
 			{
 

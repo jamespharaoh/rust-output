@@ -1,6 +1,7 @@
 use std::fmt;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::time::Duration;
 
 use backend::*;
 use output_log::*;
@@ -18,10 +19,9 @@ impl Output {
 	) -> Output {
 
 		Output {
-			state: Arc::new (Mutex::new (
-				OutputState::new  (
-					backend),
-			)),
+			state: OutputState::new (
+				backend,
+				Duration::from_millis (100)),
 		}
 
 	}
