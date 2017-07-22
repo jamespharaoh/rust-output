@@ -80,7 +80,7 @@ impl OutputLog {
 
 			}
 
-			output_state.update_backend ();
+			output_state.update_backend_asynchronous ();
 
 		}
 
@@ -111,7 +111,7 @@ impl OutputLog {
 
 			}
 
-			output_state.update_backend ();
+			output_state.update_backend_asynchronous ();
 
 		}
 
@@ -142,7 +142,7 @@ impl OutputLog {
 
 			}
 
-			output_state.update_backend ();
+			output_state.update_backend_asynchronous ();
 
 		}
 
@@ -158,7 +158,7 @@ impl OutputLog {
 			let mut output_state =
 				output_state.lock ().unwrap ();
 
-			{
+			let log_state = {
 
 				let log_internal =
 					output_state.get_log_internal (
@@ -171,9 +171,12 @@ impl OutputLog {
 
 				log_internal.state = OutputLogState::Complete;
 
-			}
+				log_internal.state
 
-			output_state.update_backend ();
+			};
+
+			output_state.update_backend_auto (
+				log_state);
 
 		}
 
@@ -189,7 +192,7 @@ impl OutputLog {
 			let mut output_state =
 				output_state.lock ().unwrap ();
 
-			{
+			let log_state = {
 
 				let log_internal =
 					output_state.get_log_internal (
@@ -202,9 +205,12 @@ impl OutputLog {
 
 				log_internal.state = OutputLogState::Incomplete;
 
-			}
+				log_internal.state
 
-			output_state.update_backend ();
+			};
+
+			output_state.update_backend_auto (
+				log_state);
 
 		}
 
@@ -221,7 +227,7 @@ impl OutputLog {
 			let mut output_state =
 				output_state.lock ().unwrap ();
 
-			{
+			let log_state = {
 
 				let log_internal =
 					output_state.get_log_internal (
@@ -234,9 +240,12 @@ impl OutputLog {
 
 				log_internal.message = message;
 
-			}
+				log_internal.state
 
-			output_state.update_backend ();
+			};
+
+			output_state.update_backend_auto (
+				log_state);
 
 		}
 
@@ -253,7 +262,7 @@ impl OutputLog {
 			let mut output_state =
 				output_state.lock ().unwrap ();
 
-			{
+			let log_state = {
 
 				let log_internal =
 					output_state.get_log_internal (
@@ -268,9 +277,12 @@ impl OutputLog {
 				log_internal.state = OutputLogState::Message;
 				log_internal.message = message;
 
-			}
+				log_internal.state
 
-			output_state.update_backend ();
+			};
+
+			output_state.update_backend_auto (
+				log_state);
 
 		}
 
@@ -291,7 +303,7 @@ impl Drop for OutputLog {
 				output_state.lock ().expect (
 					"Output state disappeared in OutputLog::drop");
 
-			{
+			let log_state = {
 
 				if let Some (log_internal) =
 					output_state.get_log_internal (
@@ -302,11 +314,22 @@ impl Drop for OutputLog {
 						log_internal.state = OutputLogState::Incomplete;
 					}
 
+					Some (log_internal.state)
+
+				} else {
+
+					None
+
 				}
 
 			};
 
-			output_state.update_backend ();
+			if let Some (log_state) = log_state {
+
+				output_state.update_backend_auto (
+					log_state);
+
+			}
 
 		}
 

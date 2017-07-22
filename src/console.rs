@@ -129,7 +129,28 @@ impl <'a> Backend for Console <'a> {
 
 		for log in logs {
 
-			if log.state () == OutputLogState::Removed {
+			if log.state () == OutputLogState::Message {
+
+				self.write_message (
+					& mut buffer,
+					log.message ());
+
+			} else if log.state () == OutputLogState::Complete {
+
+				self.write_running (
+					& mut buffer,
+					log.message (),
+					Some ("done"));
+
+			}
+
+		}
+
+		for log in logs {
+
+			if log.state () == OutputLogState::Removed
+			|| log.state () == OutputLogState::Message
+			|| log.state () == OutputLogState::Complete {
 				continue;
 			}
 
@@ -175,25 +196,12 @@ impl <'a> Backend for Console <'a> {
 
 				}
 
-			} else if log.state () == OutputLogState::Complete {
-
-				self.write_running (
-					& mut buffer,
-					log.message (),
-					Some ("done"));
-
 			} else if log.state () == OutputLogState::Incomplete {
 
 				self.write_running (
 					& mut buffer,
 					log.message (),
 					Some ("abort"));
-
-			} else if log.state () == OutputLogState::Message {
-
-				self.write_message (
-					& mut buffer,
-					log.message ());
 
 			} else {
 
@@ -236,6 +244,10 @@ impl <'a> Backend for Console <'a> {
 
 		);
 
+	}
+
+	fn synchronous (& self) -> bool {
+		false
 	}
 
 }

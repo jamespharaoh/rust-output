@@ -12,6 +12,7 @@ use output_log::*;
 pub struct OutputState {
 
 	backend: Option <Box <Backend>>,
+	synchronous: bool,
 
 	logs: Vec <OutputLogInternal>,
 	next_log_id: u64,
@@ -31,9 +32,15 @@ impl OutputState {
 		update_duration: Duration,
 	) -> Arc <Mutex <OutputState>> {
 
+		let synchronous =
+			backend.as_ref ().map (
+				|backend| backend.synchronous (),
+			).unwrap_or (true);
+
 		let real_self = OutputState {
 
 			backend: backend,
+			synchronous: synchronous,
 
 			logs: Vec::new (),
 			next_log_id: 0,
@@ -51,10 +58,11 @@ impl OutputState {
 				real_self,
 			));
 
-		{
+		if synchronous {
 
 			let mut real_self =
-				shared_self.lock ().unwrap ();
+				shared_self.lock ().expect (
+					"OutputState::new");
 
 			let (background_sender, background_receiver) =
 				mpsc::channel ();
@@ -105,7 +113,8 @@ impl OutputState {
 		self.logs.push (
 			log_internal);
 
-		self.update_backend ();
+		self.update_backend_auto (
+			state);
 
 		log_id
 
@@ -123,11 +132,38 @@ impl OutputState {
 
 	}
 
-	pub fn update_backend (
+	pub fn update_backend_auto (
+		& mut self,
+		state: OutputLogState,
+	) {
+
+		if state == OutputLogState::Message
+		|| state == OutputLogState::Complete
+		|| state == OutputLogState::Incomplete {
+
+			self.update_backend_synchronous ();
+
+		} else {
+
+			self.update_backend_asynchronous ();
+
+		};
+
+	}
+
+	pub fn update_backend_asynchronous (
 		& mut self,
 	) {
 
-		self.changed = true;
+		if self.synchronous {
+
+			self.update_backend_synchronous ();
+
+		} else {
+
+			self.changed = true;
+
+		}
 
 	}
 
@@ -145,7 +181,7 @@ impl OutputState {
 
 		self.paused = false;
 
-		self.update_backend_real ();
+		self.update_backend_synchronous ();
 
 	}
 
@@ -156,13 +192,13 @@ impl OutputState {
 		let old_paused = self.paused;
 		self.paused = false;
 
-		self.update_backend_real ();
+		self.update_backend_synchronous ();
 
 		self.paused = old_paused;
 
 	}
 
-	fn update_backend_real (
+	fn update_backend_synchronous (
 		& mut self,
 	) {
 
@@ -184,9 +220,9 @@ impl OutputState {
 				vec! []);
 
 		self.logs =
-			logs_temp.into_iter ().skip_while (
+			logs_temp.into_iter ().filter (
 				|log_internal|
-				log_internal.state () != OutputLogState::Running
+				log_internal.state () == OutputLogState::Running
 			).collect ();
 
 		self.changed = false;
@@ -220,9 +256,10 @@ impl OutputState {
 				shared_state.upgrade () {
 
 				let mut state =
-					shared_state.lock ().unwrap ();
+					shared_state.lock ().expect (
+						"OutputState::background_thread");
 
-				state.update_backend_real ();
+				state.update_backend_synchronous ();
 
 			}
 
@@ -241,22 +278,25 @@ impl Drop for OutputState {
 		// ask background thread to stop
 
 		let background_sender =
-			self.background_sender.take ().unwrap ();
+			self.background_sender.take ().expect (
+				"OutputState::drop");
 
 		drop (background_sender);
 
 		// wait for background thread to stop
 
 		let background_join_handle =
-			self.background_join_handle.take ().unwrap ();
+			self.background_join_handle.take ().expect (
+				"OutputState::drop");
 
-		background_join_handle.join ().unwrap ();
+		background_join_handle.join ().expect (
+			"OutputState::drop");
 
 		// perform final update
 
 		self.paused = false;
 
-		self.update_backend_real ();
+		self.update_backend_synchronous ();
 
 	}
 

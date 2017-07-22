@@ -32,7 +32,7 @@ impl Backend for PipeOutput {
 		for log in logs {
 
 			if log.state () != OutputLogState::Message {
-				break;
+				continue;
 			}
 
 			write! (
@@ -49,6 +49,10 @@ impl Backend for PipeOutput {
 
 		}
 
+	}
+
+	fn synchronous (& self) -> bool {
+		true
 	}
 
 }

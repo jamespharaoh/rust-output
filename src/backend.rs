@@ -9,6 +9,8 @@ pub trait Backend: Send {
 		jobs: & [OutputLogInternal],
 	);
 
+	fn synchronous (& self) -> bool;
+
 }
 
 // ex: noet ts=4 filetype=rust

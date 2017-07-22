@@ -326,6 +326,10 @@ impl <'a> Backend for RawConsole <'a> {
 
 	}
 
+	fn synchronous (& self) -> bool {
+		false
+	}
+
 }
 
 // ex: noet ts=4 filetype=rust

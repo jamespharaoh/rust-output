@@ -169,6 +169,38 @@ macro_rules! output_message (
 );
 
 #[ macro_export ]
+macro_rules! output_notice (
+
+	(
+		$ output : expr ,
+		$ ( $ argument : tt ) *
+	) => {
+		$ output.notice_format (
+			format_args! (
+				$ ( $ argument ) *
+			)
+		)
+	};
+
+);
+
+#[ macro_export ]
+macro_rules! output_debug (
+
+	(
+		$ output : expr ,
+		$ ( $ argument : tt ) *
+	) => {
+		$ output.debug_format (
+			format_args! (
+				$ ( $ argument ) *
+			)
+		)
+	};
+
+);
+
+#[ macro_export ]
 macro_rules! output_job_start (
 
 	(
