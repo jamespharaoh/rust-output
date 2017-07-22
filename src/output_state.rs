@@ -155,13 +155,11 @@ impl OutputState {
 		& mut self,
 	) {
 
+		self.changed = true;
+
 		if self.synchronous {
 
 			self.update_backend_synchronous ();
-
-		} else {
-
-			self.changed = true;
 
 		}
 
