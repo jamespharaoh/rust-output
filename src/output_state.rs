@@ -155,12 +155,10 @@ impl OutputState {
 		& mut self,
 	) {
 
-		self.changed = true;
-
 		if self.synchronous {
-
 			self.update_backend_synchronous ();
-
+		} else {
+			self.changed = true;
 		}
 
 	}
@@ -179,7 +177,7 @@ impl OutputState {
 
 		self.paused = false;
 
-		self.update_backend_synchronous ();
+		self.update_backend_real ();
 
 	}
 
@@ -190,13 +188,23 @@ impl OutputState {
 		let old_paused = self.paused;
 		self.paused = false;
 
-		self.update_backend_synchronous ();
+		self.update_backend_real ();
 
 		self.paused = old_paused;
 
 	}
 
 	fn update_backend_synchronous (
+		& mut self,
+	) {
+
+		self.changed = true;
+
+		self.update_backend_real ();
+
+	}
+
+	fn update_backend_real (
 		& mut self,
 	) {
 
@@ -257,7 +265,7 @@ impl OutputState {
 					shared_state.lock ().expect (
 						"OutputState::background_thread");
 
-				state.update_backend_synchronous ();
+				state.update_backend_real ();
 
 			}
 
@@ -294,7 +302,7 @@ impl Drop for OutputState {
 
 		self.paused = false;
 
-		self.update_backend_synchronous ();
+		self.update_backend_real ();
 
 	}
 
