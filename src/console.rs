@@ -49,11 +49,7 @@ impl <'a> Console <'a> {
 		write! (
 			target,
 			"{}{}\r\n",
-			if message.len () <= self.columns as usize {
-				& message
-			} else {
-				& message [0 .. self.columns as usize]
-			},
+			message,
 			termion::clear::AfterCursor,
 		).unwrap ();
 
