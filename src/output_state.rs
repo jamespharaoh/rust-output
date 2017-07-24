@@ -58,7 +58,7 @@ impl OutputState {
 				real_self,
 			));
 
-		if synchronous {
+		if ! synchronous {
 
 			let mut real_self =
 				shared_self.lock ().expect (

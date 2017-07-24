@@ -17,6 +17,7 @@ pub struct Output {
 
 impl Output {
 
+	#[ inline ]
 	pub fn new (
 		backend: Option <Box <Backend>>,
 	) -> Output {
@@ -32,6 +33,7 @@ impl Output {
 
 	}
 
+	#[ inline ]
 	pub fn new_with_options (
 		backend: Option <Box <Backend>>,
 		prefix: String,
@@ -50,41 +52,50 @@ impl Output {
 
 	}
 
-	pub fn clone_without_notices (
+	#[ inline ]
+	pub fn disable_notices (
 		& self,
-		prefix: String,
 	) -> Output {
 
 		Output {
 			state: self.state.clone (),
-			prefix: format! (
-				"{}{}",
-				self.prefix,
-				prefix),
+			prefix: self.prefix.clone (),
 			notice: false,
 			debug: false,
 		}
 
 	}
 
-	pub fn clone_with_notices (
+	#[ inline ]
+	pub fn enable_notices (
 		& self,
-		prefix: String,
 	) -> Output {
 
 		Output {
 			state: self.state.clone (),
-			prefix: format! (
-				"{}{}",
-				self.prefix,
-				prefix),
+			prefix: self.prefix.clone (),
 			notice: true,
 			debug: false,
 		}
 
 	}
 
-	pub fn clone_with_debug (
+	#[ inline ]
+	pub fn enable_debug (
+		& self,
+	) -> Output {
+
+		Output {
+			state: self.state.clone (),
+			prefix: self.prefix.clone (),
+			notice: true,
+			debug: true,
+		}
+
+	}
+
+	#[ inline ]
+	pub fn prefix (
 		& self,
 		prefix: String,
 	) -> Output {
@@ -213,6 +224,7 @@ impl Output {
 
 	}
 
+	#[ inline ]
 	pub fn start_job <
 		MessageString: Into <String>,
 	> (
@@ -229,6 +241,7 @@ impl Output {
 
 	}
 
+	#[ inline ]
 	pub fn pause (
 		& self,
 	) {
@@ -240,6 +253,7 @@ impl Output {
 
 	}
 
+	#[ inline ]
 	pub fn unpause (
 		& self,
 	) {
@@ -251,6 +265,7 @@ impl Output {
 
 	}
 
+	#[ inline ]
 	pub fn flush (
 		& self,
 	) {
@@ -262,6 +277,7 @@ impl Output {
 
 	}
 
+	#[ inline ]
 	pub fn add_log (
 		& self,
 		message: String,
